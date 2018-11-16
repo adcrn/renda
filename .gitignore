@@ -34,3 +34,4 @@
 # Other stuff
 *.ppm
 *.swp
+.DS_Store
