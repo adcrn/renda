@@ -1,4 +1,5 @@
 #include <iostream>
+#include "vec3.h"
 
 int main()
 {
@@ -13,15 +14,12 @@ int main()
     {
         for (int i = 0; i < length; i++)
         {
-            // Normalize each of the color components
-            float r = float(i) / float(length);
-            float g = float(j) / float(height);
-            float b = 0.2;
+            vec3 col(float(i) / float(length), float(j) / float(height), 0.2);
 
             // Convert normalized color to full color
-            int ir = int(255.99 * r);
-            int ig = int(255.99 * g);
-            int ib = int(255.99 * b);
+            int ir = int(255.99 * col.r());
+            int ig = int(255.99 * col.g());
+            int ib = int(255.99 * col.b());
 
             std::cout << ir << " " << ig << " " << ib << "\n";
         }
