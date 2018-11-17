@@ -18,7 +18,7 @@ bool sphere::hit(const ray& r, float tmin, float tmax, hit_record& rec) const
     float a = dot(r.direction(), r.direction());
     float b = dot(oc, r.direction());
     float c = dot(oc, oc) - radius * radius;
-    float discriminant = b * b - 4 * a * c;
+    float discriminant = b * b - a * c;
 
     // If it does hit, check both sides of sphere
     if (discriminant > 0)
