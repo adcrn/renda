@@ -6,12 +6,21 @@
 #include "ray.h"
 #include "sphere.h"
 
-vec3 color(const ray& r, hitable *world)
+vec3 color(const ray& r, hitable *world, int depth)
 {
     hit_record rec;
-    if (world->hit(r, 0.0, MAXFLOAT, rec))
+    if (world->hit(r, 0.001, MAXFLOAT, rec))
     {
-        return 0.5 * vec3(rec.normal.x() + 1, rec.normal.y() + 1, rec.normal.z() + 1);
+        ray scattered;
+        vec3 attenuation;
+        if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+        {
+            return attenuation * color(scattered, world, depth + 1);
+        }
+        else
+        {
+            return vec3(0,0,0);
+        }
     }
     else
     {
@@ -39,10 +48,12 @@ int main()
     std::cout << "P3\n" << length << " " << height << "\n255\n";
 
     // Add objects to scene
-    hitable *l[2];
-    l[0] = new sphere(vec3(0, 0, -1), 0.5);
-    l[1] = new sphere(vec3(0, -100.5, -1), 100);
-    hitable *world = new hitable_list(l, 2);
+    hitable *l[4];
+    l[0] = new sphere(vec3(0, 0, -1), 0.5, new diffuse(vec3(0.8, 0.3, 0.3)));
+    l[1] = new sphere(vec3(0, -100.5, -1), 100, new diffuse(vec3(0.8, 0.8, 0.0)));
+    l[2] = new sphere(vec3(1, 0, -1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.3));
+    l[3] = new sphere(vec3(-1, 0, -1), 0.5, new metal(vec3(0.8, 0.8, 0.8), 1.0));
+    hitable *world = new hitable_list(l, 4);
 
     // Camera to view scene
     camera cam;
@@ -62,10 +73,11 @@ int main()
 
                 ray r = cam.get_ray(u, v);
                 vec3 p = r.point_at_parameter(2.0);
-                col += color(r, world);
+                col += color(r, world, 0);
             }
 
             col /= float(num_samples);
+            col = vec3(sqrt(col.r()), sqrt(col.g()), sqrt(col.b()));
 
             // Convert normalized color to full color
             int ir = int(255.99 * col.r());
