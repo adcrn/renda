@@ -39,39 +39,20 @@ vec3 color(const ray& r, hitable *world, int depth)
     }
 }
 
-void writePPMFile(int* buffer, int width, int height, const std::string filename)
+int main(int argc, char** argv)
 {
-    std::ofstream out_file;
-    out_file.open(filename);
-
-    out_file << "P3\n" << width << " " << height << "\n255\n";
-    int length = width * height * 3;
-
-    for (int i = 0; i < length; i += 3)
-    {
-        out_file << buffer[i] << " " << buffer[i+1] << " " << buffer[i+2] << "\n";
-    }
-
-    out_file.close();
-}
-
-int main()
-{
+    int chunk_size = atoi(argv[1]);
     int width = 200;
     int height = 100;
     int num_samples = 100;
 
+    int data[height][width];
     // Acts as a limit for the multithread loop
     std::size_t max = width * height;
-
-    // Buffer to avoid writing directly to std::cout through threads
-    int *pixels = new int[max * 3];
 
     // cores is the number of concurrent threads supported
     std::size_t cores = std::thread::hardware_concurrency();
     std::vector<std::future<void>> future_vector;
-
-    // blah blah
     volatile std::atomic<std::size_t> count(0);
 
     // Header for the PPM file
@@ -96,29 +77,30 @@ int main()
         future_vector.emplace_back(
             std::async(std::launch::async, [=, &count]()
             {
-                    // Thread-local PRNG for the averaging step
-                    std::random_device rd;
-                    std::mt19937 gen(rd());
-                    std::uniform_real_distribution<> dis(0.0, 1.0);
-                    
-                    // Each thread works on its own section of pixels
-                    while (true)
-                    {
-                        std::size_t index = count++;
-                        if (index >= max)
-                        {
-                            break;
-                        }
+                // Thread-local PRNG for the averaging step
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> dis(0.0, 1.0);
 
+                // Each thread works on its own section of pixels
+                while (count < max)
+                {
+                    std::size_t chunk_index = count;
+                    count += chunk_size;
+                    std::size_t chunk_end = chunk_index + chunk_size;
+
+                    while (chunk_index < chunk_end)
+                    {
                         // The idea here is that the desired pixel on a row
                         // will always be less than the length of the row and
                         // that after going through one whole row, y will floor
                         // to the next number.
-                        std::size_t x = index % width;
-                        std::size_t y = index / width;
+                        int x = chunk_index % width;
+                        int y = chunk_index / width;
+                        chunk_index++;
 
                         vec3 col(0, 0, 0);
-                       
+
                         // Average over the amount of samples
                         for (int s = 0; s < num_samples; s++)
                         {
@@ -138,12 +120,11 @@ int main()
                         int ib = int(255.99 * col.b());
 
                         // Using a stringstream to prevent interleaving writes
-                        std::stringstream ss;
-                        ss << ir << " " << ig << " " << ib << "\n";
-                        std::cout << ss.str();
+                        //std::stringstream ss;
+                        //ss << ir << " " << ig << " " << ib << "\n";
+                        //std::cout << ss.str();
                     }
+                }
             }));
     }
-
-    delete [] pixels;
 }
