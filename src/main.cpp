@@ -7,6 +7,7 @@
 #include <iostream>
 #include <random>
 #include <sstream>
+#include <stdio.h>
 #include <thread>
 #include <vector>
 #include "camera.h"
@@ -14,6 +15,13 @@
 #include "hitable_list.h"
 #include "ray.h"
 #include "sphere.h"
+
+typedef struct RGBPixel
+{
+    int red;
+    int green;
+    int blue;
+} RGBPixel;
 
 vec3 color(const ray& r, hitable *world, int depth) 
 {
@@ -39,24 +47,54 @@ vec3 color(const ray& r, hitable *world, int depth)
     }
 }
 
+void writePPMFile(std::vector<std::future<void>>& fut_vec, RGBPixel* data, int width, int height, int max, std::string filename)
+{
+    // Fulfill all promises inside of future vector,
+    // guaranteed to be in proper order (non-interleaved)
+    for (auto &e: fut_vec)
+    {
+        e.get();
+    }
+
+    std::ofstream output;
+    output.open(filename);
+
+    // Header for the PPM file
+    output << "P3\n" << width << " " << height << "\n255\n";
+
+    // Print out RGB values for each pixel
+    for (int i = 0; i < max; i++)
+    {
+        output << data[i].red << " " << data[i].green << " " << data[i].blue << "\n";
+    }
+
+    output.close();
+}
+
 int main(int argc, char** argv)
 {
+    std::cout << "renda: version 0.1" << "\n";
+    std::cout << "=====================" << "\n";
+    std::cout << "Thread chunk size: " << argv[1] << "\n";
+    std::cout << "Image will be written to test.ppm" << "\n";
+    std::cout << "=====================" << "\n";
+
+    // Allow for user to define how many pixels should be
+    // rendered at a time per thread; should be an even divisor 
     int chunk_size = atoi(argv[1]);
-    int width = 200;
-    int height = 100;
+
+    const int width = 200;
+    const int height = 100;
     int num_samples = 100;
 
-    int data[height][width];
     // Acts as a limit for the multithread loop
     std::size_t max = width * height;
+    RGBPixel* data = new RGBPixel[max];
 
     // cores is the number of concurrent threads supported
     std::size_t cores = std::thread::hardware_concurrency();
     std::vector<std::future<void>> future_vector;
     volatile std::atomic<std::size_t> count(0);
-
-    // Header for the PPM file
-    std::cout << "P3\n" << width << " " << height << "\n255\n";
 
     // Add objects to scene
     hitable *l[4];
@@ -74,23 +112,31 @@ int main(int argc, char** argv)
     // For each thread that the system can support
     while (cores--)
     {
-        future_vector.emplace_back(
-            std::async(std::launch::async, [=, &count]()
-            {
-                // Thread-local PRNG for the averaging step
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_real_distribution<> dis(0.0, 1.0);
+        // Thread-local PRNG for the averaging step
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(0.0, 1.0);
 
-                // Each thread works on its own section of pixels
-                while (count < max)
+        // Each pixel will be calculated
+        while (count < max)
+        {
+            // Launch each pixel calculation as an asynchronous task
+            // whose results will be fetched later.
+            future_vector.emplace_back(
+                std::async(std::launch::async, [=, &count, &gen, &dis]()
                 {
+                    // Get and update atomic counter at top of task so
+                    // other threads don't use unreliable values
                     std::size_t chunk_index = count;
                     count += chunk_size;
                     std::size_t chunk_end = chunk_index + chunk_size;
 
+                    // Threads will calculate chunk_size pixels at a time
+                    // in order to fairly spread the work between cores
                     while (chunk_index < chunk_end)
                     {
+                        int current_pixel = chunk_index;
+                        
                         // The idea here is that the desired pixel on a row
                         // will always be less than the length of the row and
                         // that after going through one whole row, y will floor
@@ -115,16 +161,14 @@ int main(int argc, char** argv)
                         col = vec3(sqrt(col.r()), sqrt(col.g()), sqrt(col.b()));
 
                         // Convert normalized color to full color
-                        int ir = int(255.99 * col.r());
-                        int ig = int(255.99 * col.g());
-                        int ib = int(255.99 * col.b());
-
-                        // Using a stringstream to prevent interleaving writes
-                        //std::stringstream ss;
-                        //ss << ir << " " << ig << " " << ib << "\n";
-                        //std::cout << ss.str();
+                        data[current_pixel].red = int(255.99 * col.r());
+                        data[current_pixel].green = int(255.99 * col.g());
+                        data[current_pixel].blue = int(255.99 * col.b());
                     }
-                }
-            }));
+                }));
+        }
     }
+
+    writePPMFile(future_vector, data, width, height, max, output_filename);
+    delete[] data;
 }
