@@ -97,12 +97,13 @@ int main(int argc, char** argv)
     volatile std::atomic<std::size_t> count(0);
 
     // Add objects to scene
-    hitable *l[4];
+    hitable *l[5];
     l[0] = new sphere(vec3(0, 0, -1), 0.5, new diffuse(vec3(0.8, 0.3, 0.3)));
     l[1] = new sphere(vec3(0, -100.5, -1), 100, new diffuse(vec3(0.8, 0.8, 0.0)));
     l[2] = new sphere(vec3(1, 0, -1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.3));
-    l[3] = new sphere(vec3(-1, 0, -1), 0.5, new metal(vec3(0.8, 0.8, 0.8), 1.0));
-    hitable *world = new hitable_list(l, 4);
+    l[3] = new sphere(vec3(-1, 0, -1), 0.5, new dielectric(1.5));
+    l[4] = new sphere(vec3(-1, 0, -1), -0.45, new dielectric(1.5));
+    hitable *world = new hitable_list(l, 5);
 
     // Camera to view scene
     camera cam;
@@ -115,7 +116,7 @@ int main(int argc, char** argv)
         // Thread-local PRNG for the averaging step
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<> dis(0.0, 1.0);
+        std::uniform_real_distribution<float> dis(0.0, 1.0);
 
         // Each pixel will be calculated
         while (count < max)
