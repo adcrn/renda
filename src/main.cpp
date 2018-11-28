@@ -23,6 +23,50 @@ typedef struct RGBPixel
     int blue;
 } RGBPixel;
 
+hitable* random_scene()
+{
+    // Random generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0, 1.0);
+
+    // Initialize list and scene floor.
+    int n = 500;
+    hitable **l = new hitable*[n+1];
+    l[0] = new sphere(vec3(0, -1000, 0), 1000, new diffuse(vec3(0.5, 0.5, 0.5)));
+    
+    int i = 1;
+    for (int a = -11; a < 11; a++)
+    {
+        for (int b = -11; b < 11; b++)
+        {
+            float choose_material = drand48();
+            vec3 center(a + 0.9 * drand48(), 0.2, b + 0.9 * drand48());
+            if ((center - vec3(4, 0.2, 0)).length() > 0.9)
+            {
+                if (choose_material < 0.8)
+                {
+                    l[i++] = new sphere(center, 0.2, new diffuse(vec3(drand48() * drand48(), drand48() * drand48(), drand48() * drand48())));
+                }
+                else if (choose_material < 0.95)
+                {
+                    l[i++] = new sphere(center, 0.2, new metal(vec3(0.5 * (1 + drand48()), 0.5 * (1 + drand48()), 0.5 * (1 + drand48())), 0.5 * drand48()));
+                }
+                else
+                {
+                    l[i++] = new sphere(center, 0.2, new dielectric(1.5));
+                }
+            }
+        }
+    }
+
+    l[i++] = new sphere(vec3(0, 1, 0), 1.0, new dielectric(1.5));
+    l[i++] = new sphere(vec3(-4, 1, 0), 1.0, new diffuse(vec3(0.4, 0.2, 0.1)));
+    l[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+
+    return new hitable_list(l, i);
+}
+
 vec3 color(const ray& r, hitable *world, int depth) 
 {
     hit_record rec;
@@ -96,14 +140,7 @@ int main(int argc, char** argv)
     std::vector<std::future<void>> future_vector;
     volatile std::atomic<std::size_t> count(0);
 
-    // Add objects to scene
-    hitable *l[5];
-    l[0] = new sphere(vec3(0, 0, -1), 0.5, new diffuse(vec3(0.1, 0.2, 0.5)));
-    l[1] = new sphere(vec3(0, -100.5, -1), 100, new diffuse(vec3(0.8, 0.8, 0.0)));
-    l[2] = new sphere(vec3(1, 0, -1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.3));
-    l[3] = new sphere(vec3(-1, 0, -1), 0.5, new dielectric(1.5));
-    l[4] = new sphere(vec3(-1, 0, -1), -0.45, new dielectric(1.5));
-    hitable *world = new hitable_list(l, 5);
+    hitable *world = random_scene();
 
     // Camera to view scene
     vec3 lookfrom(3, 3, 2);
