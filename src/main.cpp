@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 
     // Add objects to scene
     hitable *l[5];
-    l[0] = new sphere(vec3(0, 0, -1), 0.5, new diffuse(vec3(0.8, 0.3, 0.3)));
+    l[0] = new sphere(vec3(0, 0, -1), 0.5, new diffuse(vec3(0.1, 0.2, 0.5)));
     l[1] = new sphere(vec3(0, -100.5, -1), 100, new diffuse(vec3(0.8, 0.8, 0.0)));
     l[2] = new sphere(vec3(1, 0, -1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.3));
     l[3] = new sphere(vec3(-1, 0, -1), 0.5, new dielectric(1.5));
@@ -106,7 +106,11 @@ int main(int argc, char** argv)
     hitable *world = new hitable_list(l, 5);
 
     // Camera to view scene
-    camera cam;
+    vec3 lookfrom(3, 3, 2);
+    vec3 lookat(0, 0, -1);
+    float dist_to_focus = (lookfrom - lookat).length();
+    float aperture = 2.0;
+    camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(width)/float(height), aperture, dist_to_focus);
 
     std::string output_filename = "test.ppm";
 
