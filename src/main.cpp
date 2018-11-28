@@ -40,17 +40,17 @@ hitable* random_scene()
     {
         for (int b = -11; b < 11; b++)
         {
-            float choose_material = drand48();
-            vec3 center(a + 0.9 * drand48(), 0.2, b + 0.9 * drand48());
+            float choose_material = dis(gen);
+            vec3 center(a + 0.9 * dis(gen), 0.2, b + 0.9 * dis(gen));
             if ((center - vec3(4, 0.2, 0)).length() > 0.9)
             {
                 if (choose_material < 0.8)
                 {
-                    l[i++] = new sphere(center, 0.2, new diffuse(vec3(drand48() * drand48(), drand48() * drand48(), drand48() * drand48())));
+                    l[i++] = new sphere(center, 0.2, new diffuse(vec3(dis(gen) * dis(gen), dis(gen) * dis(gen), dis(gen) * dis(gen))));
                 }
                 else if (choose_material < 0.95)
                 {
-                    l[i++] = new sphere(center, 0.2, new metal(vec3(0.5 * (1 + drand48()), 0.5 * (1 + drand48()), 0.5 * (1 + drand48())), 0.5 * drand48()));
+                    l[i++] = new sphere(center, 0.2, new metal(vec3(0.5 * (1 + dis(gen)), 0.5 * (1 + dis(gen)), 0.5 * (1 + dis(gen))), 0.5 * dis(gen)));
                 }
                 else
                 {
@@ -127,9 +127,9 @@ int main(int argc, char** argv)
     // rendered at a time per thread; should be an even divisor 
     int chunk_size = atoi(argv[1]);
 
-    const int width = 200;
-    const int height = 100;
-    int num_samples = 100;
+    const int width = 1200;
+    const int height = 800;
+    int num_samples = 50;
 
     // Acts as a limit for the multithread loop
     std::size_t max = width * height;
@@ -143,10 +143,10 @@ int main(int argc, char** argv)
     hitable *world = random_scene();
 
     // Camera to view scene
-    vec3 lookfrom(3, 3, 2);
-    vec3 lookat(0, 0, -1);
-    float dist_to_focus = (lookfrom - lookat).length();
-    float aperture = 2.0;
+    vec3 lookfrom(13, 2, 3);
+    vec3 lookat(0, 0, 0);
+    float dist_to_focus = 10.0;
+    float aperture = 0.1;
     camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(width)/float(height), aperture, dist_to_focus);
 
     std::string output_filename = "test.ppm";

@@ -16,12 +16,19 @@ pixels to assign to a thread so that each core does equal work.
 
 ## Notes
 Currently, the multi-threaded version is ~2.4-2.6x faster than its
-single-threaded counterpart (at least by my own testing).
+single-threaded counterpart (at least by my own testing). The following
+1200x800 image took ~33 minutes to render with 50 samples per pixel at a chunk size of 40 pixels on a 2017 MacBook Pro 2.3 GHz Intel Core i5 processor.
+
+![Lots and lots of spheres](https://i.imgur.com/2OdwWIk.jpg)
+
+### Fixes for Potential Issues
+The program may terminate because `std::random_engine` creates "too many open
+files" with `/dev/urandom`. Running `ulimit -n [big_number]` will fix the
+issue.
 
 ### Current Progress
-I've completed the first book in Peter Shirley's _Ray Tracing_ series. The only
-issue with the multi-threaded version right now is that it seems to open "too
-many files" to `/dev/urandom`, which is what `std::random_device` uses.
+Finished the implementation of techniques described in _Ray Tracing in One
+Weekend_. The net goal is to implement acceleration structures and more shapes.
 
 ### Sources
 - [Ray Tracing in One Weekend](https://github.com/petershirley/raytracinginoneweekend)
