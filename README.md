@@ -3,10 +3,12 @@ An exercise in raytracing.
 
 ## Compile
 Single-threaded: `g++ -std=c++11 src/main_single.cpp -o renda_single`
+
 Multi-threaded: `g++ -std=c++11 src/main.cpp -o renda`
 
 ## Use
 Single-threaded: `./renda_single`
+
 Multi-threaded: `./renda [thread_chunk_size]`
 
 Note: The thread chunk size allows the user to define a certain amount of contiguous
@@ -19,7 +21,7 @@ single-threaded counterpart (at least by my own testing).
 ### Current Progress
 I've completed the first book in Peter Shirley's _Ray Tracing_ series. The only
 issue with the multi-threaded version right now is that it seems to open "too
-many files" to `/dev/urandom`, which is what `std::random_device`.
+many files" to `/dev/urandom`, which is what `std::random_device` uses.
 
 ### Sources
 - [Ray Tracing in One Weekend](https://github.com/petershirley/raytracinginoneweekend)
