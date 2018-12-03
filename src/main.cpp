@@ -3,7 +3,6 @@
 // Main driver for raytracer
 
 #include <fstream>
-#include <future>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -46,11 +45,22 @@ hitable* random_scene()
             {
                 if (choose_material < 0.8)
                 {
-                    l[i++] = new sphere(center, 0.2, new diffuse(vec3(dis(gen) * dis(gen), dis(gen) * dis(gen), dis(gen) * dis(gen))));
+                    l[i++] = new sphere(center, 0.2,
+                                        new diffuse(vec3(
+                                                dis(gen) * dis(gen),
+                                                dis(gen) * dis(gen),
+                                                dis(gen) * dis(gen)
+                                        )));
                 }
                 else if (choose_material < 0.95)
                 {
-                    l[i++] = new sphere(center, 0.2, new metal(vec3(0.5 * (1 + dis(gen)), 0.5 * (1 + dis(gen)), 0.5 * (1 + dis(gen))), 0.5 * dis(gen)));
+                    l[i++] = new sphere(center, 0.2,
+                                        new metal(vec3(
+                                                0.5 * (1 + dis(gen)),
+                                                0.5 * (1 + dis(gen)),
+                                                0.5 * (1 + dis(gen))),
+                                                0.5 * dis(gen)
+                                        ));
                 }
                 else
                 {
@@ -91,15 +101,8 @@ vec3 color(const ray& r, hitable *world, int depth)
     }
 }
 
-void writePPMFile(std::vector<std::future<void>>& fut_vec, RGBPixel* data, int width, int height, int max, std::string filename)
+void writePPMFile(RGBPixel* data, int width, int height, int max, std::string filename)
 {
-    // Fulfill all promises inside of future vector,
-    // guaranteed to be in proper order (non-interleaved)
-    for (auto &e: fut_vec)
-    {
-        e.get();
-    }
-
     std::ofstream output;
     output.open(filename);
 
@@ -115,30 +118,63 @@ void writePPMFile(std::vector<std::future<void>>& fut_vec, RGBPixel* data, int w
     output.close();
 }
 
+void render(RGBPixel* data, const camera cam, hitable* world, int current_pixel, int limit, int height, int width, int num_samples, int jump)
+{
+    // Thread-local RNG
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0, 1.0);
+
+    while (current_pixel < limit)
+    {
+        // Each pixel will be calculated
+        int x = current_pixel % width;
+        int y = current_pixel / width;
+
+        vec3 col(0, 0, 0);
+
+        // Average over the amount of samples
+        for (int s = 0; s < num_samples; s++)
+        {
+            float u = float(x + dis(gen)) / float(width);
+            float v = float(y + dis(gen)) / float(height);
+
+            ray r = cam.get_ray(u, v);
+            col += color(r, world, 0);
+        }
+
+        col /= float(num_samples);
+        col = vec3(sqrt(col.r()), sqrt(col.g()), sqrt(col.b()));
+
+        // Convert normalized color to full color
+        int red = int(255.99 * col.r());
+        int green = int(255.99 * col.g());
+        int blue = int(255.99 * col.b());
+
+        data[current_pixel].red = red;
+        data[current_pixel].green = green;
+        data[current_pixel].blue = blue;
+
+        current_pixel += jump;
+    }
+}
+
+     
 int main(int argc, char** argv)
 {
-    std::cout << "renda: version 0.1" << "\n";
-    std::cout << "=====================" << "\n";
-    std::cout << "Thread chunk size: " << argv[1] << "\n";
-    std::cout << "Image will be written to test.ppm" << "\n";
+    std::cout << "renda: version 0.2" << std::endl;
     std::cout << "=====================" << "\n";
 
-    // Allow for user to define how many pixels should be
-    // rendered at a time per thread; should be an even divisor 
-    int chunk_size = atoi(argv[1]);
-
-    const int width = 1200;
-    const int height = 800;
+    const int width = 200;
+    const int height = 100;
     int num_samples = 50;
 
     // Acts as a limit for the multithread loop
-    std::size_t max = width * height;
+    const int max = width * height;
     RGBPixel* data = new RGBPixel[max];
 
     // cores is the number of concurrent threads supported
-    std::size_t cores = std::thread::hardware_concurrency();
-    std::vector<std::future<void>> future_vector;
-    volatile std::atomic<std::size_t> count(0);
+    int cores = std::thread::hardware_concurrency();
 
     hitable *world = random_scene();
 
@@ -151,66 +187,25 @@ int main(int argc, char** argv)
 
     std::string output_filename = "test.ppm";
 
-    // For each thread that the system can support
-    while (cores--)
+    std::vector<std::thread> threads;
+    for (int start_location = 0; start_location < cores; start_location++)
     {
-        // Thread-local PRNG for the averaging step
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> dis(0.0, 1.0);
-
-        // Each pixel will be calculated
-        while (count < max)
-        {
-            // Launch each pixel calculation as an asynchronous task
-            // whose results will be fetched later.
-            future_vector.emplace_back(
-                std::async(std::launch::async, [=, &count, &gen, &dis]()
-                {
-                    // Get and update atomic counter at top of task so
-                    // other threads don't use unreliable values
-                    std::size_t chunk_index = count;
-                    count += chunk_size;
-                    std::size_t chunk_end = chunk_index + chunk_size;
-
-                    // Threads will calculate chunk_size pixels at a time
-                    // in order to fairly spread the work between cores
-                    while (chunk_index < chunk_end)
-                    {
-                        int current_pixel = chunk_index;
-                        
-                        // The idea here is that the desired pixel on a row
-                        // will always be less than the length of the row and
-                        // that after going through one whole row, y will floor
-                        // to the next number.
-                        int x = chunk_index % width;
-                        int y = chunk_index / width;
-                        chunk_index++;
-
-                        vec3 col(0, 0, 0);
-
-                        // Average over the amount of samples
-                        for (int s = 0; s < num_samples; s++)
-                        {
-                            float u = float(x + dis(gen)) / float(width);
-                            float v = float(y + dis(gen)) / float(height);
-
-                            ray r = cam.get_ray(u, v);
-                            col += color(r, world, 0);
-                        }
-
-                        col /= float(num_samples);
-                        col = vec3(sqrt(col.r()), sqrt(col.g()), sqrt(col.b()));
-
-                        // Convert normalized color to full color
-                        data[current_pixel].red = int(255.99 * col.r());
-                        data[current_pixel].green = int(255.99 * col.g());
-                        data[current_pixel].blue = int(255.99 * col.b());
-                    }
-                }));
-        }
+        threads.push_back(std::thread(
+            render,
+            std::ref(data),
+            std::ref(cam),
+            std::ref(world),
+            start_location,
+            max,
+            height,
+            width,
+            num_samples,
+            cores
+        ));
     }
 
-    writePPMFile(future_vector, data, width, height, max, output_filename);
+    std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
+    writePPMFile(data, width, height, max, output_filename);
+
     delete[] data;
 }
