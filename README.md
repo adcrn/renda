@@ -14,9 +14,10 @@ Multi-threaded: `./renda`
 ## Notes
 Currently, the multi-threaded version is at least ~3x faster than its
 single-threaded counterpart (at least by my own testing). The following
-1200x800 image took ~3 minutes to render on a 2017 MacBook Pro 2.3 GHz Intel Core i5 processor.
+1920x1080 image at 1000 samples per pixel took ~64 minutes to render on a 3.2 GHz Intel Core i5 processor.
 
-![Lots and lots of spheres](https://i.imgur.com/JI5OfV5.jpg)
+![Lots and lots of spheres](https://i.imgur.com/zhEihdD.jpg)
+
 
 I've also moved the multithreading process to a more sensible `std::thread` model
 instead of using `std::async`.

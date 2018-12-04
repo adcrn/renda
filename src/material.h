@@ -1,7 +1,6 @@
 #ifndef MATERIALH
 #define MATERIALH
 #include "ray.h"
-#include "rng.h"
 #include "hitable.h"
 
 // Randomize direction for diffuse surfaces

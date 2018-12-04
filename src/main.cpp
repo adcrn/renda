@@ -2,7 +2,9 @@
 // Email: hi@lxnd.de
 // Main driver for raytracer
 
+#include <algorithm>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
@@ -12,7 +14,6 @@
 #include "float.h"
 #include "hitable_list.h"
 #include "ray.h"
-#include "rng.h"
 #include "sphere.h"
 
 typedef struct RGBPixel
@@ -154,9 +155,9 @@ int main(int argc, char** argv)
     std::cout << "renda: version 0.2" << std::endl;
     std::cout << "=====================" << "\n";
 
-    const int width = 1200;
-    const int height = 800;
-    int num_samples = 50;
+    const int width = 1920;
+    const int height = 1080;
+    int num_samples = 1000;
 
     // Acts as a limit for the multithread loop
     const int max = width * height;

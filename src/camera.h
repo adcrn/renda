@@ -1,7 +1,6 @@
 #ifndef CAMERAH
 #define CAMERAH
 #include "ray.h"
-#include "rng.h"
 
 vec3 random_in_unit_disk()
 {
