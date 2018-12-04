@@ -1,31 +1,19 @@
 #ifndef MATERIALH
 #define MATERIALH
-#include <random>
 #include "ray.h"
+#include "rng.h"
 #include "hitable.h"
 
 // Randomize direction for diffuse surfaces
 vec3 random_in_unit_sphere()
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> blah(0.0, 1.0);
-
     vec3 p;
     do
     {
-        p = 2.0 * vec3(blah(gen), blah(gen), blah(gen)) - vec3(1,1,1);
+        p = 2.0 * vec3(drand48(), drand48(), drand48()) - vec3(1,1,1);
     } while (p.squared_length() >= 1.0);
 
     return p;
-}
-
-float random_float()
-{
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> blah(0.0, 1.0);
-    return blah(gen);
 }
 
 // Reflection of vector using linear algebra, best algebra
@@ -103,7 +91,7 @@ class dielectric: public material
                 reflect_prob = 1.0;
             }
 
-            if (random_float() < reflect_prob)
+            if (drand48() < reflect_prob)
             {
                 scattered = ray(rec.p, reflected);
             }

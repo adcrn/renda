@@ -4,7 +4,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <random>
 #include <sstream>
 #include <stdio.h>
 #include <thread>
@@ -13,6 +12,7 @@
 #include "float.h"
 #include "hitable_list.h"
 #include "ray.h"
+#include "rng.h"
 #include "sphere.h"
 
 typedef struct RGBPixel
@@ -24,11 +24,6 @@ typedef struct RGBPixel
 
 hitable* random_scene()
 {
-    // Random generator
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(0.0, 1.0);
-
     // Initialize list and scene floor.
     int n = 500;
     hitable **l = new hitable*[n+1];
@@ -39,27 +34,27 @@ hitable* random_scene()
     {
         for (int b = -11; b < 11; b++)
         {
-            float choose_material = dis(gen);
-            vec3 center(a + 0.9 * dis(gen), 0.2, b + 0.9 * dis(gen));
+            float choose_material = drand48();
+            vec3 center(a + 0.9 * drand48(), 0.2, b + 0.9 * drand48());
             if ((center - vec3(4, 0.2, 0)).length() > 0.9)
             {
                 if (choose_material < 0.8)
                 {
                     l[i++] = new sphere(center, 0.2,
                                         new diffuse(vec3(
-                                                dis(gen) * dis(gen),
-                                                dis(gen) * dis(gen),
-                                                dis(gen) * dis(gen)
+                                                drand48() * drand48(),
+                                                drand48() * drand48(),
+                                                drand48() * drand48()
                                         )));
                 }
                 else if (choose_material < 0.95)
                 {
                     l[i++] = new sphere(center, 0.2,
                                         new metal(vec3(
-                                                0.5 * (1 + dis(gen)),
-                                                0.5 * (1 + dis(gen)),
-                                                0.5 * (1 + dis(gen))),
-                                                0.5 * dis(gen)
+                                                0.5 * (1 + drand48()),
+                                                0.5 * (1 + drand48()),
+                                                0.5 * (1 + drand48())),
+                                                0.5 * drand48()
                                         ));
                 }
                 else
@@ -118,14 +113,9 @@ void writePPMFile(RGBPixel* data, int width, int height, int max, std::string fi
     output.close();
 }
 
-void render(RGBPixel* data, const camera cam, hitable* world, int current_pixel, int limit, int height, int width, int num_samples, int jump)
+void render(RGBPixel* data, const camera cam, hitable* world, int current_pixel, int limit, int height, int width, int num_samples)
 {
-    // Thread-local RNG
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(0.0, 1.0);
-
-    while (current_pixel < limit)
+    for (int counter = 0; counter < limit; counter++)
     {
         // Each pixel will be calculated
         int x = current_pixel % width;
@@ -136,8 +126,8 @@ void render(RGBPixel* data, const camera cam, hitable* world, int current_pixel,
         // Average over the amount of samples
         for (int s = 0; s < num_samples; s++)
         {
-            float u = float(x + dis(gen)) / float(width);
-            float v = float(y + dis(gen)) / float(height);
+            float u = float(x + drand48()) / float(width);
+            float v = float(y + drand48()) / float(height);
 
             ray r = cam.get_ray(u, v);
             col += color(r, world, 0);
@@ -155,18 +145,17 @@ void render(RGBPixel* data, const camera cam, hitable* world, int current_pixel,
         data[current_pixel].green = green;
         data[current_pixel].blue = blue;
 
-        current_pixel += jump;
+        current_pixel++;
     }
 }
 
-     
 int main(int argc, char** argv)
 {
     std::cout << "renda: version 0.2" << std::endl;
     std::cout << "=====================" << "\n";
 
-    const int width = 200;
-    const int height = 100;
+    const int width = 1200;
+    const int height = 800;
     int num_samples = 50;
 
     // Acts as a limit for the multithread loop
@@ -187,23 +176,30 @@ int main(int argc, char** argv)
 
     std::string output_filename = "test.ppm";
 
+    // Image will be divided evenly among cores
+    int block_size = max / cores;
+
+    // Each thread will only work on its particular area
     std::vector<std::thread> threads;
-    for (int start_location = 0; start_location < cores; start_location++)
+    for (int i = 0; i < cores - 1; i++)
     {
         threads.push_back(std::thread(
             render,
-            std::ref(data),
-            std::ref(cam),
-            std::ref(world),
-            start_location,
-            max,
+            std::ref(data),     // No need to copy this...
+            std::ref(cam),      // or this...
+            std::ref(world),    // or this
+            i * block_size,     // starting element
+            block_size,         // iteration limit
             height,
             width,
-            num_samples,
-            cores
+            num_samples
         ));
     }
 
+    // Main thread will render the last part of the image
+    render(data, cam, world, (cores - 1) * block_size, block_size, height, width, num_samples);
+
+    // End threads and join them back to main thread
     std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
     writePPMFile(data, width, height, max, output_filename);
 

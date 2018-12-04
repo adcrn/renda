@@ -12,17 +12,17 @@ Single-threaded: `./renda_single`
 Multi-threaded: `./renda`
 
 ## Notes
-Currently, the multi-threaded version is ~2.4-2.6x faster than its
+Currently, the multi-threaded version is at least ~3x faster than its
 single-threaded counterpart (at least by my own testing). The following
-1200x800 image took ~33 minutes to render with 50 samples per pixel at a chunk size of 40 pixels on a 2017 MacBook Pro 2.3 GHz Intel Core i5 processor.
+1200x800 image took ~3 minutes to render on a 2017 MacBook Pro 2.3 GHz Intel Core i5 processor.
 
-![Lots and lots of spheres](https://i.imgur.com/2OdwWIk.jpg)
+![Lots and lots of spheres](https://i.imgur.com/JI5OfV5.jpg)
 
 I've also moved the multithreading process to a more sensible `std::thread` model
 instead of using `std::async`.
 
 ### Fixes for Potential Issues
-The program may terminate because `std::random_engine` creates "too many open
+The program may terminate because `drand48()` creates "too many open
 files" with `/dev/urandom`. Running `ulimit -n [big_number]` will fix the
 issue.
 

@@ -8,11 +8,6 @@
 
 hitable* random_scene()
 {
-    // Random generator
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(0.0, 1.0);
-
     // Initialize list and scene floor.
     int n = 500;
     hitable **l = new hitable*[n+1];
@@ -76,22 +71,14 @@ vec3 color(const ray& r, hitable *world, int depth)
 
 int main()
 {
-    //Will be used to obtain a seed for the random number engine
-    std::random_device rd;
-
-    //Standard mersenne_twister_engine seeded with rd()
-    std::mt19937 gen(rd());
-    
-    std::uniform_real_distribution<float> blah(0.0, 1.0);
-
-    int width = 200;
-    int height = 100;
-    int num_samples = 100;
+    int width = 1200;
+    int height = 800;
+    int num_samples = 50;
 
     // Header for the PPM file
     std::cout << "P3\n" << width << " " << height << "\n255\n";
 
-    hitable *world = new random_scene();
+    hitable *world = random_scene();
 
     // Camera to view scene
     vec3 lookfrom(3, 3, 2);
@@ -110,11 +97,10 @@ int main()
             // Average over the amount of samples
             for (int s = 0; s < num_samples; s++)
             {
-                float u = float(i + blah(gen)) / float(width);
-                float v = float(j + blah(gen)) / float(height);
+                float u = float(i + drand48()) / float(width);
+                float v = float(j + drand48()) / float(height);
 
                 ray r = cam.get_ray(u, v);
-                vec3 p = r.point_at_parameter(2.0);
                 col += color(r, world, 0);
             }
 
