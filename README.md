@@ -41,7 +41,7 @@ issue.
 The program initially used `std::async` to generate a promise/future for each
 pixel that needed to be traced. Early work resulted in interleaved writes to
 `std::cout`, which would lead to a scrambled image upon piping stdout to a PPM
-image. Futures that operated on an image array were then stored in a vector to work within the constraints of the `std::async` paradigm. Issues related to this implementation were deemed more trouble than they were worth and the program was moved to a more sensible `std::thread` implementation instead.
+image. Futures that operated on an image array were then stored in a vector to work within the constraints of the `std::async` paradigm. There was a massive amount of context switching due to the behavior of `std::async`'s launch behavior and that severely slowed the rendering process. Thus, the program was moved to a more sensible `std::thread` implementation instead in which _n - 1_ worker threads are created (where _n_ is equal to the amount of cores on one's system) and an equal partition of the image is passed to each thread. The main thread also handles a portion of the image as well. This virtually eliminated all superfluous context switching and resulted in a much shorter rendering time.
 
 ### Current Progress
 Finished the implementation of techniques described in _Ray Tracing in One
