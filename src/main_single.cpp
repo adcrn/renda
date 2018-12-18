@@ -4,7 +4,7 @@
 #include "float.h"
 #include "hitable_list.h"
 #include "ray.h"
-#include "sphere.h"
+#include "shape.h"
 
 hitable* random_scene()
 {
@@ -85,7 +85,7 @@ int main()
     vec3 lookat(0, 0, -1);
     float dist_to_focus = (lookfrom - lookat).length();
     float aperture = 2.0;
-    camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(width)/float(height), aperture, dist_to_focus);
+    camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(width)/float(height), aperture, dist_to_focus, 0.0, 1.0);
 
     // Set color information for each pixel
     for (int j = height - 1; j >= 0; j--)

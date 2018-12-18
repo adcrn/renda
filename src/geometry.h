@@ -1,6 +1,63 @@
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include <cmath>
+
+class vec2
+{
+    public:
+    
+        // Empty constructor
+        vec2() {}
+
+        // Define dimensional attributes
+        vec2(float e0, float e1) { e[0] = e0; e[1] = e1; }
+
+        // Getters for vector magnitudes
+        // Note: the "inline" keyword tells the compiler to replace the function
+        // call for this function/method with the body of the function itself in
+        // order to reduce overhead when calling it.
+        inline float x() const { return e[0]; }
+        inline float y() const { return e[1]; }
+
+        // Vector operations
+        inline const vec2& operator+() const { return *this; }
+        inline vec2 operator-() const { return vec2(-e[0], -e[1]); }
+        inline float operator[](int i) const { return e[i]; }
+        inline float& operator[](int i) { return e[i]; }
+
+        inline vec2 operator+ (const vec2 &v) { return vec2(e[0] + v.e[0], e[1] + v.e[1]); }
+        inline vec2 operator/ (const float t) { return vec2(e[0] / t, e[1] / t); }
+        inline vec2 operator* (const float t) { return vec2(e[0] * t, e[1] * t); }
+        inline vec2& operator/= (const float t) { e[0] /= t; e[1] /= t; return *this; };
+        inline vec2& operator*= (const float t) { e[0] *= t; e[1] *= t; return *this; };
+
+        inline float length() const
+        {
+            return sqrt(e[0]*e[0] + e[1]*e[1]);
+        }
+
+        inline float squared_length() const
+        {
+            return e[0]*e[0] + e[1]*e[1];
+        }
+
+        inline void make_unit_vector();
+
+        float e[2];
+};
+
+inline std::istream& operator>>(std::istream &is, vec2 &t)
+{
+    is >> t.e[0] >> t.e[1];
+    return is;
+}
+
+inline std::ostream& operator<<(std::ostream &os, vec2 &t)
+{
+    os << t.e[0] << t.e[1];
+    return os;
+}
 
 class vec3
 {
@@ -47,6 +104,19 @@ class vec3
         }
 
         inline void make_unit_vector();
+
+        inline vec3& normalize()
+        {
+            float n = squared_length();
+
+            if (n > 0)
+            {
+                float factor = 1 / sqrt(n);
+                e[0] *= factor, e[1] *= factor, e[2] *= factor;
+            }
+
+            return *this;
+        }
 
         float e[3];
 };
