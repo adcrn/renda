@@ -133,7 +133,55 @@ class moving_sphere : public hitable
 
 class triangle : public hitable
 {
-    //
+    public:
+        triangle() {}
+        triangle(vec3 p0, vec3 p1, vec3 p2, material *m) : p0(p0), p1(p1), p2(p2), mat_ptr(m)
+        {
+            v0v1 = p1 - p0;
+            v0v2 = p2 - p0;
+            surface_normal = cross(v0v1, v0v2).normalize();
+        }
+
+        bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const
+        {
+            vec3 p_vec = cross(r.direction(), v0v2);
+            float det = dot(v0v1, p_vec);
+
+            if (fabs(det) < 1e-8)
+            {
+                return false;
+            }
+
+            float inv_det = 1 / det;
+
+            vec3 t_vec = r.origin() - p0;
+            float u = dot(t_vec, p_vec) * inv_det;
+            if (u < 0 || u > 1)
+            {
+                return false;
+            }
+
+            vec3 q_vec = cross(t_vec, v0v1);
+            float v = dot(q_vec, r.direction()) * inv_det;
+            if (v < 0 || u + v > 1)
+            {
+                return false;
+            }
+
+            //float t = dot(v0v2, q_vec) * inv_det;
+
+            return true;
+        }
+
+        float area() const
+        {
+            //
+        }
+    
+        vec3 p0, p1, p2;
+        vec3 v0v1, v0v2;
+        material *mat_ptr;
+        vec3 surface_normal;
 };
 
 class cube : public hitable
