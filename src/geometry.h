@@ -1,3 +1,6 @@
+#ifndef GEOMETRY
+#define GEOMETRY
+
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
@@ -242,3 +245,5 @@ inline vec3 unit_vector(vec3 v)
 {
     return v / v.length();
 }
+
+#endif

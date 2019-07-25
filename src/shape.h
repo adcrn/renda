@@ -68,6 +68,12 @@ class sphere : public hitable
             text_coor.e[0] = (1 + atan2(norm_point.z(), norm_point.x()) / M_PI) * 0.5;
             text_coor.e[1] = acosf(norm_point.y()) / M_PI;
         }
+
+        bool bounding_box(float t0, float t1, aabb& box) const
+        {
+            box = aabb(center - vec3(radius, radius, radius), center + vec3(radius, radius, radius));
+            return true;
+        }
 };
 
 class moving_sphere : public hitable
@@ -129,6 +135,15 @@ class moving_sphere : public hitable
             text_coor.e[0] = (1 + atan2(norm_point.z(), norm_point.x()) / M_PI) * 0.5;
             text_coor.e[1] = acosf(norm_point.y()) / M_PI;
         }
+
+        bool bounding_box(float t0, float t1, aabb& box) const
+        {
+            aabb box0(center(t0) - vec3(radius, radius, radius), center(t0) + vec3(radius, radius, radius));
+            aabb box1(center(t1) - vec3(radius, radius, radius), center(t1) + vec3(radius, radius, radius));
+            box = surrounding_box(box0, box1);
+
+            return true;
+        }
 };
 
 class triangle : public hitable
@@ -168,15 +183,21 @@ class triangle : public hitable
                 return false;
             }
 
-            //float t = dot(v0v2, q_vec) * inv_det;
+            float t = dot(v0v2, q_vec) * inv_det;
+            if (t < 0) return false;
+
+            rec.t = t;
+            rec.p = r.point_at_parameter(rec.t);
+            rec.normal = surface_normal;
+            rec.mat_ptr = mat_ptr;
 
             return true;
         }
 
-        float area() const
+        /*float area() const
         {
             //
-        }
+        }*/
     
         vec3 p0, p1, p2;
         vec3 v0v1, v0v2;

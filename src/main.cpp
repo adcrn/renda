@@ -1,5 +1,5 @@
 // Author: Aleander Decurnou
-// Email: hi@lxnd.de
+// Email: ad@alx.xyz
 // Main driver for raytracer
 
 #include <algorithm>
@@ -13,6 +13,7 @@
 #include "camera.h"
 #include "float.h"
 #include "hitable_list.h"
+#include "model.h"
 #include "ray.h"
 #include "shape.h"
 
